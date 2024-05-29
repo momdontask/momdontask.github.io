@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="Hexo Theme Redefine">
+    
+    <meta name="author" content="Thomas Wu and Charles Wang">
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://momdontask.github.io/2024/05/29/web security-how to prevent xss attacks/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+        <meta name="description" content="Front-end SecurityWith the rapid development of the internet, information security has become one of the primary concerns for enterprises, and the front-end is often the high-risk point for security i">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Web Security-How to Prevent XSS Attacks">
+<meta property="og:url" content="https://momdontask.github.io/2024/05/29/Web%20Security-How%20to%20Prevent%20XSS%20Attacks/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="Front-end SecurityWith the rapid development of the internet, information security has become one of the primary concerns for enterprises, and the front-end is often the high-risk point for security i">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://momdontask.github.io/images/xss_on_page.png">
+<meta property="article:published_time" content="2024-05-29T14:15:00.000Z">
+<meta property="article:modified_time" content="2024-05-29T14:13:08.139Z">
+<meta property="article:author" content="Charles Wang and Thomas Wu">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://momdontask.github.io/images/xss_on_page.png">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/genshin.svg" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/genshin.svg">
+    <meta name="theme-color" content="#A31F34">
+    <link rel="shortcut icon" href="/images/genshin.svg">
+    <!--- Page Info-->
+    
+    <title>
+        
+            Web Security-How to Prevent XSS Attacks -
+        
+        Don&#39;t Ask Your Mom
+    </title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+
+    
+        <style>
+    :root {
+        --preloader-background-color: #fff;
+        --preloader-text-color: #000;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --preloader-background-color: #202124;
+            --preloader-text-color: #fff;
+        }
+    }
+
+    @media (prefers-color-scheme: light) {
+        :root {
+            --preloader-background-color: #fff;
+            --preloader-text-color: #000;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .ml13 {
+            font-size: 2.6rem !important; /* Adjust this value as needed */
+        }
+    }
+
+    .preloader {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem; /* Tailwind 'gap-4' is 1rem */
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        padding: 12px;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh; /* 'h-screen' is 100% of the viewport height */
+        background-color: var(--preloader-background-color);
+        z-index: 1100; /* 'z-[1100]' sets the z-index */
+        transition: opacity 0.2s ease-in-out;
+    }
+
+    .ml13 {
+        font-size: 3.2rem;
+        /* text-transform: uppercase; */
+        color: var(--preloader-text-color);
+        letter-spacing: -1px;
+        font-weight: 500;
+        font-family: 'Chillax-Variable', sans-serif;
+        text-align: center;
+    }
+
+    .ml13 .word {
+        display: inline-flex;
+        flex-wrap: wrap;
+        white-space: nowrap;
+    }
+
+    .ml13 .letter {
+        display: inline-block;
+        line-height: 1em;
+    }
+</style>
+
+<div class="preloader">
+    
+<script src="/js/libs/anime.min.js"></script>
+
+    <h1 class="ml13">
+        Don&#39;t Ask Your Mom
+    </h1>
+    <script>
+        var textWrapper = document.querySelector('.ml13');
+        // Split text into words
+        var words = textWrapper.textContent.trim().split(' ');
+
+        // Clear the existing content
+        textWrapper.innerHTML = '';
+
+        // Wrap each word and its letters in spans
+        words.forEach(function(word) {
+            var wordSpan = document.createElement('span');
+            wordSpan.classList.add('word');
+            wordSpan.innerHTML = word.replace(/\S/g, "<span class='letter'>$&</span>");
+            textWrapper.appendChild(wordSpan);
+            textWrapper.appendChild(document.createTextNode(' ')); // Add space between words
+        });
+
+
+        anime.timeline({loop: true})
+            .add({
+                targets: '.ml13 .letter',
+                translateY: [100,0],
+                translateZ: 0,
+                opacity: [0,1],
+                easing: "easeOutExpo",
+                duration: 1400,
+                delay: (el, i) => 300 + 30 * i
+            }).add({
+            targets: '.ml13 .letter',
+            translateY: [0,-100],
+            opacity: [1,0],
+            easing: "easeInExpo",
+            duration: 1200,
+            delay: (el, i) => 100 + 30 * i
+        });
+
+        let themeStatus = JSON.parse(localStorage.getItem('REDEFINE-THEME-STATUS'))?.isDark;
+
+        // If the theme status is not found in local storage, check the preferred color scheme
+        if (themeStatus === undefined || themeStatus === null) {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                themeStatus = 'dark';
+            } else {
+                themeStatus = 'light';
+            }
+        }
+
+        // Now you can use the themeStatus variable in your code
+        if (themeStatus) {
+            document.documentElement.style.setProperty('--preloader-background-color', '#202124');
+            document.documentElement.style.setProperty('--preloader-text-color', '#fff');
+        } else {
+            document.documentElement.style.setProperty('--preloader-background-color', '#fff');
+            document.documentElement.style.setProperty('--preloader-text-color', '#000');
+        }
+
+        window.addEventListener('load', function () {
+            hidePreloaderAfterTimeout(1000); // Hide after 1000 milliseconds once the window has loaded
+        });
+
+        // Backup failsafe: Hide preloader after a maximum of 5000 milliseconds, regardless of the window load event
+        hidePreloaderAfterTimeout(5000);
+
+        function hidePreloaderAfterTimeout(delay) {
+            setTimeout(function () {
+                var preloader = document.querySelector('.preloader');
+                preloader.style.opacity = '0';
+                setTimeout(function () {
+                    preloader.style.display = 'none';
+                }, 200);
+            }, delay);
+        }
+    </script>
+</div>
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/assets/build/styles.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/fonts.css">
+
+    
+<link rel="stylesheet" href="/fonts/Satoshi/satoshi.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"momdontask.github.io","root":"/","language":"en"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"title_alignment":"left","headings_top_spacing":{"h1":"5rem","h2":"4rem","h3":"2.8rem","h4":"2.5rem","h5":"2.2rem","h6":"2rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"mac","font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":{"enable":true,"default":"cc_by_nc_sa"},"lazyload":true,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#A31F34","secondary":null,"default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"https://cn.vercount.one/js","enable":true,"site_pv":true,"site_uv":true,"post_pv":true},"single_page":true,"preloader":true,"open_graph":true,"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"Don't Ask Your Mom","subtitle":{"text":[],"hitokoto":{"enable":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":{"github":null,"instagram":null,"zhihu":null,"twitter":null,"email":null},"qrs":{"weixin":null}}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"9.3.0"}},"version":"2.6.1","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"}},"search":{"enable":false,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur"},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":null},"article_date_format":"auto","categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footerStart":"2022/8/17 11:45:14"};
+    window.lang_ago = {"second":"%s seconds ago","minute":"%s minutes ago","hour":"%s hours ago","day":"%s days ago","week":"%s weeks ago","month":"%s months ago","year":"%s years ago"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 7.2.0"></head>
+
+
+<body>
+<div class="progress-bar-container">
+    
+
+    
+        <span class="pjax-progress-bar"></span>
+<!--        <span class="swup-progress-icon">-->
+<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+<!--        </span>-->
+    
+</div>
+
+
+<main class="page-container" id="swup">
+
+    
+
+    <div class="main-content-container">
+
+
+        <div class="main-content-header">
+            <header class="navbar-container px-6 md:px-12">
+
+    <div class="navbar-content ">
+        <div class="left">
+            
+                <a class="logo-image" href="/">
+                    <img src="/images/genshin.svg">
+                </a>
+            
+            <a class="logo-title" href="/">
+                
+                Don&#39;t Ask Your Mom
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    HOME
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-screen w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                HOME
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">0</div>
+        <div class="label text-third-text-color text-sm">Tags</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">0</div>
+        <div class="label text-third-text-color text-sm">Categories</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">5</div>
+        <div class="label text-third-text-color text-sm">Posts</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+        </div>
+
+        <div class="main-content-body">
+
+            
+
+            <div class="main-content">
+
+                
+                    <div class="post-page-container flex relative justify-between box-border w-full h-full">
+    <div class="article-content-container">
+
+        <div class="article-title relative w-full">
+            
+                <div class="w-full flex items-center pt-6 justify-start">
+                    <h1 class="article-title-regular text-second-text-color text-4xl md:text-6xl font-bold px-2 sm:px-6 md:px-8 py-3">Web Security-How to Prevent XSS Attacks</h1>
+                </div>
+            
+            </div>
+
+        
+            <div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+                <div class="avatar w-[46px] h-[46px] flex-shrink-0 rounded-medium border border-border-color p-[1px]">
+                    <img src="/images/genshin.svg">
+                </div>
+                <div class="info flex flex-col justify-between">
+                    <div class="author flex items-center">
+                        <span class="name text-default-text-color text-lg font-semibold">Thomas Wu and Charles Wang</span>
+                        
+                            <span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv1</span>
+                        
+                    </div>
+                    <div class="meta-info">
+                        <div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2024-05-29 10:15</span>
+        <span class="mobile">2024-05-29 10:15</span>
+        <span class="hover-info">Created</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2024-05-29 10:13:08</span>
+            <span class="mobile">2024-05-29 10:13:08</span>
+            <span class="hover-info">Updated</span>
+        </span>
+    
+
+    
+    
+
+    
+    
+    
+    
+        <span class="article-pv article-meta-item">
+            <i class="fa-regular fa-eye"></i>&nbsp;<span id="busuanzi_value_page_pv"></span>
+        </span>
+    
+</div>
+
+                    </div>
+                </div>
+            </div>
+        
+
+        
+
+
+        <div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+            <h2 id="Front-end-Security"><a href="#Front-end-Security" class="headerlink" title="Front-end Security"></a>Front-end Security</h2><p>With the rapid development of the internet, information security has become one of the primary concerns for enterprises, and the front-end is often the high-risk point for security issues. In the era of mobile internet, front-end developers face traditional security issues such as XSS and CSRF, as well as new types of security threats like network hijacking and illegal Hybrid API calls. Although browsers are continually evolving with new security technologies like CSP and Same-Site Cookies, many potential threats still exist, requiring front-end developers to continually patch and improve security measures.</p>
+<p>In this article, we will discuss XSS, including:</p>
+<ol>
+<li>Introduction to XSS attacks</li>
+<li>Types of XSS attacks</li>
+<li>Prevention of XSS attacks</li>
+<li>Summary</li>
+</ol>
+<h2 id="Introduction-to-XSS-Attacks"><a href="#Introduction-to-XSS-Attacks" class="headerlink" title="Introduction to XSS Attacks"></a>Introduction to XSS Attacks</h2><p>Before we begin, let’s consider two statements and determine if they are correct:</p>
+<ol>
+<li>It is the backend developer’s responsibility to prevent XSS. They should escape sensitive characters in all user-submitted data before further processing.</li>
+<li>All data to be inserted into the page should be escaped through a sensitive character filtering function, filtering out common sensitive characters before insertion.</li>
+</ol>
+<p>If you are not sure about the answers, read on as we break down these issues step by step.</p>
+<h3 id="Occurrence-and-Fixes-of-XSS-Vulnerabilities"><a href="#Occurrence-and-Fixes-of-XSS-Vulnerabilities" class="headerlink" title="Occurrence and Fixes of XSS Vulnerabilities"></a>Occurrence and Fixes of XSS Vulnerabilities</h3><p>XSS attacks occur when a page is injected with malicious code. To illustrate this more vividly, we’ll use an example involving a student, Charles.</p>
+<h3 id="A-Case-Study"><a href="#A-Case-Study" class="headerlink" title="A Case Study"></a>A Case Study</h3><p>One day, Charles needed a search page on his English project blog, where the content of the keywords would be determined based on the URL parameters. Charles quickly wrote the page and launched it. The code was as follows:</p>
+<div class="highlight-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;input type=&quot;text&quot; value=&quot;&lt;%= getParameter(&quot;keyword&quot;) %&gt;&quot;&gt;</span><br><span class="line">&lt;button&gt;Search&lt;/button&gt;</span><br><span class="line">&lt;div&gt;</span><br><span class="line">  The keyword you search is: &lt;%= getParameter(&quot;keyword&quot;) %&gt;</span><br><span class="line">&lt;/div&gt;</span><br></pre></td></tr></table></figure></div>
+
+<p>However, shortly after deployed, Charles received a mysterious link from his friend:</p>
+<div class="highlight-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://xxx/search?keyword=&quot;&gt;&lt;script&gt;alert(&#x27;XSS&#x27;);&lt;/script&gt;`</span><br></pre></td></tr></table></figure></div>
+
+<p>With a sense of foreboding, Charles clicked on the link (do not imitate, only click on safe links). Sure enough, a dialog box with “XSS” popped up on the page.</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/xss_on_page.png"
+                      alt="Origin"
+                ></p>
+<p>Damn, what’s wrong! Charles furrowed his brow and discovered the secret:<br>When the browser requests :</p>
+<div class="highlight-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://xxx/search?keyword=&quot;&gt;&lt;script&gt;alert(&#x27;XSS&#x27;);&lt;/script&gt;</span><br></pre></td></tr></table></figure></div>
+
+<p>the server will parse the request parameter keyword, get <code>&quot;&gt;&lt;script&gt;alert(&#39;XSS&#39;);&lt;/script&gt;</code>, and concatenate it into HTML and return it to the browser. The following HTML is formed:</p>
+<div class="highlight-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;input type=&quot;text&quot; value=&quot;&quot;&gt;&lt;script&gt;alert(&#x27;XSS&#x27;);&lt;/script&gt;&quot;&gt;</span><br><span class="line">&lt;button&gt;Search&lt;/button&gt;</span><br><span class="line">&lt;div&gt;</span><br><span class="line">  The keyword you search is:&quot;&gt;&lt;script&gt;alert(&#x27;XSS&#x27;);&lt;/script&gt;</span><br><span class="line">&lt;/div&gt;</span><br></pre></td></tr></table></figure></div>
+
+<p>The browser cannot tell that <code>&lt;script&gt;alert(&#39;XSS&#39;);&lt;/script&gt; </code>is malicious code, so it executes it.</p>
+<p>Here, not only the content of the div is injected, but also the value attribute of the input is injected, and the alert pops up twice.</p>
+<p>How should we prevent it?</p>
+<p>In fact, this is just the browser treating the user’s input as a script and executing it. Then the solution is just tell the browser that this content is text.</p>
+<p>Charles quickly found a solution and fixed this vulnerability:</p>
+<div class="highlight-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;input type=&quot;text&quot; value=&quot;&lt;%= escapeHTML(getParameter(&quot;keyword&quot;)) %&gt;&quot;&gt;</span><br><span class="line">&lt;button&gt;Search&lt;/button&gt;</span><br><span class="line">&lt;div&gt;</span><br><span class="line">  The keyword you search is: &lt;%= escapeHTML(getParameter(&quot;keyword&quot;)) %&gt;</span><br><span class="line">&lt;/div&gt;</span><br></pre></td></tr></table></figure></div>
+
+<p>Note: escapeHTML() escapes HTML according to the following rules:</p>
+<table>
+<thead>
+<tr>
+<th>Character</th>
+<th>Escaped Character</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>&amp;</td>
+<td><code>&amp;amp;</code></td>
+</tr>
+<tr>
+<td>&lt;</td>
+<td><code>&amp;lt;</code></td>
+</tr>
+<tr>
+<td>&gt;</td>
+<td><code>&amp;gt;</code></td>
+</tr>
+<tr>
+<td>“</td>
+<td><code>&amp;quot;</code></td>
+</tr>
+<tr>
+<td>‘</td>
+<td><code>&amp;#x27;</code></td>
+</tr>
+<tr>
+<td>&#x2F;</td>
+<td><code>&amp;#x2F;</code></td>
+</tr>
+</tbody></table>
+<p>After the processing of escape function, the browser will receive:</p>
+<div class="highlight-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;input type=&quot;text&quot; value=&quot;&amp;quot;&amp;gt;&amp;lt;script&amp;gt;alert(&amp;#x27;XSS&amp;#x27;);&amp;lt;&amp;#x2F;script&amp;gt;&quot;&gt;</span><br><span class="line">&lt;button&gt;search&lt;/button&gt;</span><br><span class="line">&lt;div&gt;</span><br><span class="line"> The Keyword you search is: &amp;quot;&amp;gt;&amp;lt;script&amp;gt;alert(&amp;#x27;XSS&amp;#x27;);&amp;lt;&amp;#x2F;script&amp;gt;</span><br><span class="line">&lt;/div&gt;</span><br></pre></td></tr></table></figure></div>
+
+<p>Malicious codes are escaped and no longer executed by the browser, and the search terms can be perfectly displayed on the page. Through this incident, Charles learned the following knowledge:<br>Usually, the user input content contained in the page is displayed in a fixed container or attribute in the form of text. Attackers use the user input fragments of these pages to splice special format strings, break through the limitations of the original position, and form code fragments. Attackers inject scripts on the target website and run them on the user’s browser, thereby causing potential risks.<br>Through HTML escaping, XSS attacks can be prevented. <span style="color:red">[Of course, things are not that simple! Please continue reading]</span>.</p>
+<h3 id="Another-Case-Study-Special-HTML-Attribute"><a href="#Another-Case-Study-Special-HTML-Attribute" class="headerlink" title="Another Case Study (Special HTML Attribute)"></a>Another Case Study (Special HTML Attribute)</h3><p>Since the last incident, Charles will carefully escape the data inserted into the page. He also found that most templates have escape configurations, so that all data inserted into the page are escaped by default. In this way, there is no need to worry about accidentally missing unescaped variables, so Charles’s work becomes easier again.<br>But, on a gorgeous morning, Charles again received a mysterious link: <code>http://xxx/?redirect_to=javascript:alert(&#39;XSS&#39;)</code>. Charles didn’t dare to be careless and clicked on the page. However, the page did not automatically pop up the evil “XSS”.<br>Charles opened the source code of the corresponding page and found the following content:</p>
+<div class="highlight-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;a href=&quot;&lt;%= escapeHTML(getParameter(&quot;redirect_to&quot;)) %&gt;&quot;&gt;link to...&lt;/a&gt;</span><br></pre></td></tr></table></figure></div>
+
+<p>When the attacking url is <code>http://xxx/?redirect_to=javascript:alert(&#39;XSS&#39;)</code>, the browser reads:</p>
+<div class="highlight-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;a href=&quot;javascript:alert(&amp;#x27;XSS&amp;#x27;)&quot;&gt;link to...&lt;/a&gt;</span><br></pre></td></tr></table></figure></div>
+
+<p>Although the code will not be executed immediately, once the user clicks the a tag, the browser will pop up “XSS”.<br>Damn, again…<br>Here, the user’s data does not break our restrictions in terms of position and is still the correct href attribute. But its content is not the type we expected. It turns out that not only special characters, but also strings such as javascript: can trigger XSS attacks if they appear in specific locations.</p>
+<p>Charles frowned and thought of a solution:</p>
+<div class="highlight-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">xss = getParameter(&quot;redirect_to&quot;).startsWith(&#x27;javascript:&#x27;);</span><br><span class="line">if (!xss) &#123;</span><br><span class="line">  &lt;a href=&quot;&lt;%= escapeHTML(getParameter(&quot;redirect_to&quot;))%&gt;&quot;&gt;</span><br><span class="line">    link to...</span><br><span class="line">  &lt;/a&gt;</span><br><span class="line">&#125; else &#123;</span><br><span class="line">  &lt;a href=&quot;/404&quot;&gt;</span><br><span class="line">    link to...</span><br><span class="line">  &lt;/a&gt;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+
+<p>As long as the URL does not start with javascript:, it is safe, right?</p>
+<p>Charles’s friend  threw another link: <code>http://xxx/?redirect_to=jAvAscRipt:alert(&#39;XSS&#39;)</code></p>
+<p><code>This can be executed? ..... Well, the browser is so powerful.</code></p>
+<p>Charles wanted to cry. When judging whether the URL starts with javascript:, he first converted the user input to lowercase and then compared it.</p>
+<p>However, to bypass Charles’s protection strategy, his friend constructed such a link: <code>http://xxx/?redirect_to=%20javascript:alert(&#39;XSS&#39;)</code></p>
+<p><code>%20javascript:alert(&#39;XSS&#39;)</code> becomes <code>javascript:alert(&#39;XSS&#39;)</code> after URL parsing. This string starts with a space. In this way, the attacker can bypass the backend keyword rules and successfully complete the injection.</p>
+<p>In the end, Charles chose the whitelist method to completely solve this vulnerability:</p>
+<div class="highlight-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">allowSchemes = [&quot;http&quot;, &quot;https&quot;];</span><br><span class="line"></span><br><span class="line">valid = isValid(getParameter(&quot;redirect_to&quot;), allowSchemes);</span><br><span class="line"></span><br><span class="line">if (valid) &#123;</span><br><span class="line">  &lt;a href=&quot;&lt;%= escapeHTML(getParameter(&quot;redirect_to&quot;))%&gt;&quot;&gt;</span><br><span class="line">    link to...</span><br><span class="line">  &lt;/a&gt;</span><br><span class="line">&#125; else &#123;</span><br><span class="line">  &lt;a href=&quot;/404&quot;&gt;</span><br><span class="line">    link to...</span><br><span class="line">  &lt;/a&gt;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>Through this incident, Charles learned the following knowledge:<br>Escape HTML does not mean you can rest easy. For link jumps, such as <code>&lt;a href=&quot;xxx&quot; or location.href=&quot;xxx&quot;</code>, check its content, prohibit links starting with javascript: and other illegal schemes.</p>
+<h3 id="Again-Another-Case-Study-Use-different-escaping-rule"><a href="#Again-Another-Case-Study-Use-different-escaping-rule" class="headerlink" title="Again, Another Case Study (Use different escaping rule)"></a>Again, Another Case Study (Use different escaping rule)</h3><p>One day, Charles wanted to speed up his website, so he insert some data into the HTML using JSON:</p>
+<div class="highlight-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&lt;script&gt;</span><br><span class="line">var initData = &lt;%= data.toJSON() %&gt;</span><br><span class="line">&lt;/script&gt;</span><br></pre></td></tr></table></figure></div>
+
+<p>Charles cannot use escapeHTML() where he insert JSON, because after escaping, the JSON format will be destroyed.</p>
+<p>Not surprisingly, his friend found another vulnerability. It turns out that embedded JSON is also unsafe:</p>
+<ol>
+<li>When JSON contains the two characters U+2028 or U+2029, it cannot be used as a JavaScript literal, otherwise a syntax error will be thrown.</li>
+<li>When JSON contains the string <code>&lt;/script&gt;</code>, the current script tag will be closed, and the browser will parse the subsequent string content as HTML; injection can be completed by adding the next <code>&lt;script&gt;</code> tag.<br>So we have to implement an escapeEmbedJSON() function to escape the embedded JSON.</li>
+</ol>
+<p>The escape rules are as follows:</p>
+<table>
+<thead>
+<tr>
+<th>Character</th>
+<th>Escaped Character</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>U+2028</td>
+<td>\u2028</td>
+</tr>
+<tr>
+<td>U+2029</td>
+<td>\u2029</td>
+</tr>
+<tr>
+<td>&lt;</td>
+<td>\u003c</td>
+</tr>
+</tbody></table>
+<p>The fixed code is:</p>
+<div class="highlight-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&lt;script&gt;</span><br><span class="line">var initData = &lt;%= escapeEmbedJSON(data.toJSON()) %&gt;</span><br></pre></td></tr></table></figure></div>
+
+<p>Through this incident, Charles learned the following knowledge:<br>HTML escaping is very complicated, and different escaping rules should be used in different situations. If the wrong escaping rules are used, it is very likely to bury XSS risks. You should try to avoid writing your own escaping library, and use a mature, industry-wide escaping library.</p>
+<h3 id="Summary-of-Vulnerabilities"><a href="#Summary-of-Vulnerabilities" class="headerlink" title="Summary of Vulnerabilities"></a>Summary of Vulnerabilities</h3><p>Now that Charles’s example is finished, let’s take a systematic look at some injection methods of XSS:</p>
+<ul>
+<li>In the text embedded in HTML, malicious content is injected as a script tag.</li>
+<li>In the embedded JavaScript, the spliced data breaks through the original restrictions (strings, variables, method names, etc.).</li>
+<li>In the tag attributes, the malicious content contains quotation marks, thereby breaking the restrictions of the attribute value and injecting other attributes or tags.</li>
+<li>In the href, src and other attributes of the tag, executable code such as javascript: is included.</li>
+<li>In the onload, onerror, onclick and other events, uncontrolled code is injected.</li>
+<li>In the style attribute and tag, code similar to background-image:url(“javascript:…”); is included (new versions of browsers can already prevent it).</li>
+<li>In the style attribute and tag, CSS expression code similar to expression(…) is included (new versions of browsers can already prevent it).</li>
+<li>In short, if the developer does not properly filter the text entered by the user and rashly inserts it into HTML, it is easy to cause injection vulnerabilities.Attackers can exploit vulnerabilities to construct malicious code instructions, and then use malicious code to endanger data security.</li>
+</ul>
+<h2 id="Types-of-XSS"><a href="#Types-of-XSS" class="headerlink" title="Types of XSS"></a>Types of XSS</h2><p>From the aboved example, we already gain some understanding of XSS. The formal definition of Cross-Site Scripting (XSS) is a type of code injection attack. Attackers inject malicious scripts into a target website, which are then executed in the user’s browser. By exploiting these malicious scripts, attackers can obtain sensitive user information such as cookies, session IDs, and more, compromising data security.<br>The term “XSS” is used to differentiate it from CSS (Cascading Style Sheets).<br>The essence of XSS attacks is that malicious code is not properly filtered and gets mixed with the website’s normal code. The browser cannot distinguish between trusted and untrusted scripts, leading to the execution of malicious code.<br>Since the malicious code is executed directly on the user’s terminal, it can directly access the user’s information or impersonate the user to send attacker-defined requests to the website. In some cases, due to input limitations, the injected malicious script may be relatively short. However, attackers can introduce external scripts, which the browser will execute, to carry out more complex attack strategies.</p>
+<h3 id="How-Does-XSS-Injection-Happen"><a href="#How-Does-XSS-Injection-Happen" class="headerlink" title="How Does XSS Injection Happen?"></a>How Does XSS Injection Happen?</h3><p>Attackers can inject malicious scripts not only through user-generated content (UGC) but also through URL parameters and other input sources that are not properly sanitized.</p>
+<p>When processing user input, the following sources should be considered untrusted:</p>
+<ul>
+<li>User-generated content (UGC)</li>
+<li>Links from third-party sources</li>
+<li>URL parameters</li>
+<li>POST parameters</li>
+<li>Referer (potentially from untrusted sources)</li>
+<li>Cookies (potentially injected from other subdomains)</li>
+</ul>
+<h3 id="Types-of-XSS-Attacks"><a href="#Types-of-XSS-Attacks" class="headerlink" title="Types of XSS Attacks"></a>Types of XSS Attacks</h3><p>Based on the source of the attack, XSS attacks can be categorized into three types: stored, reflected, and DOM-based.</p>
+<p><strong>Stored XSS</strong>:<br>Attacking steps of Stored XSS:</p>
+<ol>
+<li>The attacker submits the malicious code to the database of the target website.</li>
+<li>When the user opens the target website, the website server takes the malicious code from the database, splices it in HTML and returns it to the browser.</li>
+<li>After receiving the response, the user’s browser parses and executes it, and the malicious code mixed in it is also executed.</li>
+<li>The malicious code steals user data and sends it to the attacker’s website, or impersonates the user’s behavior and calls the target website interface to perform the operation specified by the attacker.</li>
+</ol>
+<p>This type of attack is common in website functions with user-saved data, such as forum posts, product reviews, user private messages, etc.</p>
+<p><strong>Reflected XSS</strong>:<br>Attack steps of reflected XSS:</p>
+<ol>
+<li>The attacker constructs a special URL containing malicious code.</li>
+<li>When the user opens the URL with malicious code, the website server takes the malicious code out of the URL, splices it in HTML and returns it to the browser.</li>
+<li>The user’s browser receives the response and parses and executes it, and the malicious code mixed in it is also executed.</li>
+<li>The malicious code steals user data and sends it to the attacker’s website, or impersonates the user’s behavior and calls the target website interface to perform the operation specified by the attacker.</li>
+</ol>
+<p>The difference between reflected XSS and stored XSS is that the malicious code of stored XSS is stored in the database, and the malicious code of reflected XSS is stored in the URL. Reflected XSS vulnerabilities are common in functions that pass parameters through URLs, such as website search, jump, etc.</p>
+<p>Since users need to actively open the malicious URL to take effect, attackers often combine multiple means to induce users to click. POST content can also trigger reflected XSS, but its triggering conditions are more stringent (it is necessary to construct a form submission page and guide users to click), so it is very rare.</p>
+<p><strong>DOM-based XSS</strong>:<br>Attack steps of DOM-type XSS:</p>
+<ol>
+<li>The attacker constructs a special URL containing malicious code.</li>
+<li>The user opens the URL with malicious code.</li>
+<li>The user’s browser receives the response and parses it, and the front-end JavaScript extracts the malicious code in the URL and executes it.</li>
+<li>The malicious code steals user data and sends it to the attacker’s website, or impersonates the user’s behavior and calls the target website interface to perform the operation specified by the attacker.</li>
+</ol>
+<p>The difference between DOM-type XSS and the first two types of XSS: In DOM-type XSS attacks, the extraction and execution of malicious code is completed by the browser side, which is a security vulnerability of the front-end JavaScript itself, while the other two types of XSS are security vulnerabilities on the server side.</p>
+<h2 id="Prevention-of-XSS"><a href="#Prevention-of-XSS" class="headerlink" title="Prevention of XSS"></a>Prevention of XSS</h2><p>To prevent XSS attacks, we need to address two key elements:</p>
+<ol>
+<li>Prevent attackers from submitting malicious code.</li>
+<li>Prevent the browser from executing malicious code.</li>
+</ol>
+<h3 id="Input-filtering"><a href="#Input-filtering" class="headerlink" title="Input filtering"></a>Input filtering</h3><p>When the user submits some content, the input is filtered by the front-end and then submitted to the back-end. Is this safe?</p>
+<p>The answer is no. Once the attacker bypasses the front-end filtering and directly constructs the request, the malicious code can be submitted. So, change the filtering time: the back-end filters the input before writing to the database, and then returns the “safe” content to the front-end. Is this safe?</p>
+<p>Let’s take an example. A normal user enters the content 5 &lt; 7. Before writing to the database, it is escaped and becomes 5 &lt; 7.</p>
+<p>The problem is: at the submission stage, we are not sure where the content will be output.</p>
+<p>Here, “not sure where the content will be output” has two meanings:</p>
+<ol>
+<li>The user’s input content may be provided to the front-end and the client at the same time. Once it passes through escapeHTML(), the content displayed by the client becomes garbled (5 &lt; 7).</li>
+<li>In the front-end, different locations require different encodings.<br>  When 5 &lt; 7 is used as an HTML splicing page, it can be displayed normally:<br>  When 5 &lt; 7 is returned through Ajax and then assigned to a JavaScript variable, the string obtained by the front-end is the escaped characters. This content cannot be directly used for display in templates such as Vue, nor can it be directly used for content length calculation. It cannot be used for titles, alerts, etc.</li>
+</ol>
+<p>Therefore, input-side filtering can solve specific XSS problems in some cases, but it will introduce great uncertainty and garbled code problems. Such methods should be avoided when preventing XSS attacks. Of course, input filtering is still necessary for clear input types, such as numbers, URLs, phone numbers, email addresses, etc.</p>
+<p>Since input filtering is not completely reliable, we have to prevent XSS by “preventing browsers from executing malicious code.” This part is divided into two categories:</p>
+<ol>
+<li>Prevent injection in HTML.</li>
+<li>Prevent malicious code from being executed when JavaScript is executed.</li>
+</ol>
+<h3 id="Preventing-stored-and-reflected-XSS-attacks"><a href="#Preventing-stored-and-reflected-XSS-attacks" class="headerlink" title="Preventing stored and reflected XSS attacks"></a>Preventing stored and reflected XSS attacks</h3><p>Both stored and reflected XSS are inserted into the response HTML after the malicious code is taken out on the server side. The “data” deliberately written by the attacker is embedded in the “code” and executed by the browser. There are two common practices to prevent these two vulnerabilities:</p>
+<ol>
+<li>Change to pure front-end rendering to separate the code and data.</li>
+<li>Fully escape the HTML.</li>
+</ol>
+<h4 id="Pure-front-end-rendering"><a href="#Pure-front-end-rendering" class="headerlink" title="Pure front-end rendering"></a>Pure front-end rendering</h4><p>The process of pure front-end rendering:</p>
+<ol>
+<li>The browser first loads a static HTML, which does not contain any business-related data.</li>
+<li>Then the browser executes the JavaScript in the HTML.</li>
+<li>JavaScript loads data through Ajax and calls the DOM API to update it on the page.</li>
+</ol>
+<p>In pure front-end rendering, we will clearly tell the browser: the content to be set below is text (.innerText), attributes (.setAttribute), or styles (.style), etc. The browser will not be easily deceived and execute unexpected code.</p>
+<p>However, pure front-end rendering also needs to be careful to avoid DOM-type XSS vulnerabilities.</p>
+<p>In many internal and management systems, pure front-end rendering is very suitable. </p>
+<h4 id="Fully-escape-the-HTML"><a href="#Fully-escape-the-HTML" class="headerlink" title="Fully escape the HTML"></a>Fully escape the HTML</h4><p>Just use the simple method: use famous and commonly used escaping rule, such as OWASP Java Encoder, etc.</p>
+<h3 id="Preventing-DOM-type-XSS-attacks"><a href="#Preventing-DOM-type-XSS-attacks" class="headerlink" title="Preventing DOM-type XSS attacks"></a>Preventing DOM-type XSS attacks</h3><p>DOM-type XSS attacks are actually caused by the lack of rigor in the front-end JavaScript code of the website, which executes untrusted data as code. Be especially careful when using .innerHTML, .outerHTML, document.write(), and do not insert untrusted data as HTML into the page. Instead, try to use .textContent, .setAttribute(), etc.</p>
+<p>If you use the Vue&#x2F;React stack and do not use the v-html&#x2F;dangerouslySetInnerHTML function, avoid the XSS risks of innerHTML and outerHTML in the front-end rendering stage.</p>
+<p>Inline event listeners in DOM, such as location, onclick, onerror, onload, onmouseover, etc., the href attribute of the <a> tag, JavaScript’s eval(), setTimeout(), setInterval(), etc., can all run strings as code. If untrusted data is concatenated into a string and passed to these APIs, it is easy to cause security risks, so be sure to avoid it.</p>
+<h3 id="Other-XSS-prevention-methods"><a href="#Other-XSS-prevention-methods" class="headerlink" title="Other XSS prevention methods"></a>Other XSS prevention methods</h3><p>Although XSS can be prevented by careful escaping when rendering pages and executing JavaScript, it is still not enough to rely solely on the caution of developers. The following are some general solutions that can reduce the risks and consequences of XSS.</p>
+<h4 id="Content-Security-Policy"><a href="#Content-Security-Policy" class="headerlink" title="Content Security Policy"></a>Content Security Policy</h4><p>Strict CSP can play the following roles in preventing XSS:</p>
+<ul>
+<li>Prohibit loading external domain code to prevent complex attack logic.</li>
+<li>Prohibit external domain submission. After the website is attacked, the user’s data will not be leaked to the external domain.</li>
+<li>Prohibit inline script execution (stricter rules, currently found in GitHub).</li>
+<li>Prohibit unauthorized script execution (new feature, used by Google Map mobile version).</li>
+<li>Reasonable use of reporting can detect XSS in time and help fix the problem as soon as possible.</li>
+</ul>
+<h4 id="Input-content-length-control"><a href="#Input-content-length-control" class="headerlink" title="Input content length control"></a>Input content length control</h4><p>For untrusted input, a reasonable length should be limited. Although it is impossible to completely prevent XSS, it can increase the difficulty of XSS attacks.</p>
+<h4 id="Other-methods"><a href="#Other-methods" class="headerlink" title="Other methods"></a>Other methods</h4><p>HTTP-only Cookie: JavaScript is prohibited from reading certain sensitive cookies. An attacker cannot steal this cookie after completing XSS injection.<br>Verification code: Prevent scripts from impersonating users to submit dangerous operations.</p>
+<h2 id="Summary-of-XSS"><a href="#Summary-of-XSS" class="headerlink" title="Summary of XSS"></a>Summary of XSS</h2><p>Let’s go back to the question we asked at the beginning. I believe that the smart readers have already got the answer:</p>
+<ol>
+<li>It is the backend developer’s responsibility to prevent XSS. They should escape sensitive characters in all user-submitted data before further processing.</li>
+</ol>
+<p>Incorrect. Because:</p>
+<ul>
+<li>Preventing storage and reflection XSS is the responsibility of the backend RD. DOM XSS attacks do not occur in the backend and are the responsibility of the frontend RD. Preventing XSS is a system engineering that requires the participation of both the backend RD and the frontend RD.</li>
+<li>Escape should be performed when outputting HTML, not when submitting user input.</li>
+</ul>
+<ol start="2">
+<li>All data to be inserted into the page should be escaped through a sensitive character filtering function, filtering out common sensitive characters before insertion.</li>
+</ol>
+<p>Incorrect. Because:<br>Different contexts, such as HTML attributes, HTML text content, HTML comments, jump links, inline JavaScript strings, inline CSS style sheets, etc., require different escape rules.<br>RDs need to select appropriate escape libraries and call different escape rules for different contexts.</p>
+<p>Overall, XSS prevention is very complex and cumbersome. We not only need to escape the data in all the locations that need to be escaped. We also need to prevent redundant and incorrect escapes to prevent normal user input from appearing in garbled characters.</p>
+<p>Although it is difficult to completely avoid XSS through technical means, we can summarize the following principles to reduce the occurrence of vulnerabilities:</p>
+<ol>
+<li>Use the template engine<br>Turn on the HTML escape function that comes with the template engine. For example:<br>In ejs, try to use <code>&lt;%= data %&gt; instead of &lt;%- data %&gt;</code>;<br>In doT.js, try to use <code>&#123;&#123;! data &#125; instead of &#123;&#123;= data &#125;`;
+In FreeMarker, make sure the engine version is higher than 2.3.24, and select the correct freemarker.core.OutputFormat.
+2. Avoid inline events
+Try not to use `onLoad="onload('&#123;&#123;data&#125;&#125;&#39;)&quot;, onClick=&quot;go(&#39;&#123;&#123;action&#125;&#125;&#39;)&quot;</code> and other inline event splicing writing methods. It is safer to bind events through .addEventlistener() in JavaScript.</li>
+<li>Avoid HTML splicing<br>It is dangerous to use HTML splicing on the front end. If the framework allows, use methods such as createElement and setAttribute to implement it. Or use a more mature rendering framework, such as Vue&#x2F;React.</li>
+<li>Always be vigilant<br>When inserting into DOM attributes, links, etc., be alert and take precautions.</li>
+<li>Increase the difficulty of attack and reduce the consequences of attack<br>Use methods such as CSP, input length configuration, and interface security measures to increase the difficulty of attack and reduce the consequences of attack.</li>
+<li>Active detection and discovery<br>Use XSS attack strings and automatic scanning tools to find potential XSS vulnerabilities.</li>
+</ol>
+<h3 id="Homework"><a href="#Homework" class="headerlink" title="Homework"></a>Homework</h3><p>The following are several XSS attack games. The developers deliberately left some common XSS vulnerabilities on the website. Players submit the corresponding input on the web page and complete the XSS attack to pass the level.</p>
+<p>While playing the game, please think carefully and review the content of this article to deepen your understanding of XSS attacks.<br><a class="link"   target="_blank" rel="noopener" href="https://alf.nu/alert1?world=alert&level=alert0" >https://alf.nu/alert1?world=alert&amp;level=alert0 <i class="fa-regular fa-arrow-up-right-from-square fa-sm"></i></a><br><a class="link"   target="_blank" rel="noopener" href="https://prompt.ml/0" >https://prompt.ml/0 <i class="fa-regular fa-arrow-up-right-from-square fa-sm"></i></a><br><a class="link"   target="_blank" rel="noopener" href="https://xss-game.appspot.com/" >https://xss-game.appspot.com <i class="fa-regular fa-arrow-up-right-from-square fa-sm"></i></a></p>
+<p>Author: CW</p>
+
+        </div>
+
+        
+            <div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+                <div class="article-copyright-info-container">
+    <ul>
+        <li><strong>Title:</strong> Web Security-How to Prevent XSS Attacks</li>
+        <li><strong>Author:</strong> Thomas Wu and Charles Wang</li>
+        <li><strong>Created at
+                :</strong> 2024-05-29 10:15:00</li>
+        
+            <li>
+                <strong>Updated at
+                    :</strong> 2024-05-29 10:13:08
+            </li>
+        
+        <li>
+            <strong>Link:</strong> https://momdontask.github.io/2024/05/29/Web Security-How to Prevent XSS Attacks/
+        </li>
+        <li>
+            <strong>
+                License:
+            </strong>
+            
+
+            
+                This work is licensed under <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a>.
+            
+        </li>
+    </ul>
+</div>
+
+            </div>
+        
+
+        
+
+        
+
+        
+            <div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+                
+                
+                    <div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+                        <a class="next"
+                        rel="next"
+                        href="/2024/05/29/Python%20Web%20Scraping/"
+                        >
+                            <span class="title flex justify-center items-center">
+                                <span class="post-nav-title-item">Python Web Scraping</span>
+                                <span class="post-nav-item">Next posts</span>
+                            </span>
+                            <span class="right arrow-icon flex justify-center items-center">
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </span>
+                        </a>
+                    </div>
+                
+            </div>
+        
+
+
+        
+    </div>
+
+    
+        <div class="toc-content-container">
+            <div class="post-toc-wrap">
+    <div class="post-toc">
+        <div class="toc-title">On this page</div>
+        <div class="page-title">Web Security-How to Prevent XSS Attacks</div>
+        <ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Front-end-Security"><span class="nav-text">Front-end Security</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Introduction-to-XSS-Attacks"><span class="nav-text">Introduction to XSS Attacks</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Occurrence-and-Fixes-of-XSS-Vulnerabilities"><span class="nav-text">Occurrence and Fixes of XSS Vulnerabilities</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#A-Case-Study"><span class="nav-text">A Case Study</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Another-Case-Study-Special-HTML-Attribute"><span class="nav-text">Another Case Study (Special HTML Attribute)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Again-Another-Case-Study-Use-different-escaping-rule"><span class="nav-text">Again, Another Case Study (Use different escaping rule)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Summary-of-Vulnerabilities"><span class="nav-text">Summary of Vulnerabilities</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Types-of-XSS"><span class="nav-text">Types of XSS</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#How-Does-XSS-Injection-Happen"><span class="nav-text">How Does XSS Injection Happen?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Types-of-XSS-Attacks"><span class="nav-text">Types of XSS Attacks</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Prevention-of-XSS"><span class="nav-text">Prevention of XSS</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Input-filtering"><span class="nav-text">Input filtering</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Preventing-stored-and-reflected-XSS-attacks"><span class="nav-text">Preventing stored and reflected XSS attacks</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Preventing-DOM-type-XSS-attacks"><span class="nav-text">Preventing DOM-type XSS attacks</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Other-XSS-prevention-methods"><span class="nav-text">Other XSS prevention methods</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Summary-of-XSS"><span class="nav-text">Summary of XSS</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Homework"><span class="nav-text">Homework</span></a></li></ol></li></ol>
+
+    </div>
+</div>
+        </div>
+    
+</div>
+
+
+
+                
+
+            </div>
+
+            
+
+        </div>
+
+        <div class="main-content-footer">
+            <footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2022</span>
+              -
+            
+            2024&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">Thomas Wu and Charles Wang</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        5 posts in total
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+            <script data-swup-reload-script src="https://cn.vercount.one/js"></script>
+            <div class="relative text-center lg:absolute lg:right-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-right">
+                
+                    <span id="busuanzi_container_site_uv" class="lg:!block">
+                        <span class="text-sm">VISITOR COUNT</span>
+                        <span id="busuanzi_value_site_uv"></span>
+                    </span>
+                
+                
+                    <span id="busuanzi_container_site_pv" class="lg:!block">
+                        <span class="text-sm">TOTAL PAGE VIEWS</span>
+                        <span id="busuanzi_value_site_pv"></span>
+                    </span>
+                
+            </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">POWERED BY <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a></span>
+            <span class="text-sm lg:block">THEME&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.6.1</a></span>
+        </div>
+        
+        
+            <div>
+                Blog up for <span class="odometer" id="runtime_days" ></span> days <span class="odometer" id="runtime_hours"></span> hrs <span class="odometer" id="runtime_minutes"></span> Min <span class="odometer" id="runtime_seconds"></span> Sec
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+        
+    </div>  
+</footer>
+        </div>
+    </div>
+
+    
+        <div class="post-tools">
+            <div class="post-tools-container">
+    <ul class="article-tools-list">
+        <!-- TOC aside toggle -->
+        
+            <li class="right-bottom-tools page-aside-toggle">
+                <i class="fa-regular fa-outdent"></i>
+            </li>
+        
+
+        <!-- go comment -->
+        
+    </ul>
+</div>
+
+        </div>
+    
+
+    <div class="right-side-tools-container">
+        <div class="side-tools-container">
+    <ul class="hidden-tools-list">
+        <li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+            <i class="fa-regular fa-magnifying-glass-plus"></i>
+        </li>
+
+        <li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+            <i class="fa-regular fa-magnifying-glass-minus"></i>
+        </li>
+
+        <li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+            <i class="fa-regular fa-moon"></i>
+        </li>
+
+        <!-- rss -->
+        
+
+        
+
+        <li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+            <i class="fa-regular fa-arrow-down"></i>
+        </li>
+    </ul>
+
+    <ul class="visible-tools-list">
+        <li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+            <i class="fa-regular fa-cog fa-spin"></i>
+        </li>
+        
+            <li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+                <i class="arrow-up fas fa-arrow-up"></i>
+                <span class="percent"></span>
+            </li>
+        
+        
+    </ul>
+</div>
+
+    </div>
+
+    <div class="image-viewer-container">
+    <img src="">
+</div>
+
+
+    
+
+</main>
+
+
+    
+<script src="/js/libs/Swup.min.js"></script>
+
+<script src="/js/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    const swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+</script>
+
+
+
+
+
+
+
+<script src="/js/tools/imageViewer.js" type="module"></script>
+
+<script src="/js/utils.js" type="module"></script>
+
+<script src="/js/main.js" type="module"></script>
+
+<script src="/js/layouts/navbarShrink.js" type="module"></script>
+
+<script src="/js/tools/scrollTopBottom.js" type="module"></script>
+
+<script src="/js/tools/lightDarkSwitch.js" type="module"></script>
+
+<script src="/js/layouts/categoryList.js" type="module"></script>
+
+
+
+
+
+    
+<script src="/js/tools/codeBlock.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/layouts/lazyload.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/tools/runtime.js"></script>
+
+    
+<script src="/js/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+  
+<script src="/js/libs/Typed.min.js"></script>
+
+  
+<script src="/js/plugins/typed.js" type="module"></script>
+
+
+
+
+
+
+
+
+
+<div class="post-scripts" data-swup-reload-script>
+    
+        
+<script src="/js/tools/tocToggle.js" type="module"></script>
+
+<script src="/js/layouts/toc.js" type="module"></script>
+
+<script src="/js/plugins/tabs.js" type="module"></script>
+
+    
+</div>
+
+
+</body>
+</html>
